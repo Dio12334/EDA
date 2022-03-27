@@ -1,5 +1,9 @@
 #include <algorithm> 
+#include <type_traits>
 #include "rbtree.h"
+#include <iostream>
+#define DERECHA true
+#define IZQUIERDA false
 
 Nodo::Nodo(int dato){
     this->dato = dato;
@@ -128,7 +132,7 @@ void RBtree::corregirArbol(Nodo* &puntero){
                 setColor(padre ,BLACK);
                 setColor(tio   ,BLACK);
                 setColor(abuelo,RED  );
-                puntero = padre;
+                puntero = abuelo;
             }
             else{
                 // CASO II: padre y el hijo tienen distintas direcciones
@@ -154,7 +158,7 @@ void RBtree::corregirArbol(Nodo* &puntero){
                 setColor(padre ,BLACK);
                 setColor(tio   ,BLACK);
                 setColor(abuelo,RED  );
-                puntero = padre;
+                puntero = abuelo;
             }
             else{
                 // CASO II: padre y el hijo tienen distintas direcciones
@@ -171,7 +175,7 @@ void RBtree::corregirArbol(Nodo* &puntero){
             }
         }
     }
-    
+     setColor(root, BLACK);
 }
 
 void RBtree::insertar(int dato){
@@ -185,4 +189,244 @@ RBtree::RBtree(){
 }
 
 RBtree::~RBtree(){
+}
+
+void RBtree::preorder(Nodo* nodo, std::vector<int>& pre){
+    if(!nodo)
+        return;
+
+    pre.emplace_back(nodo->dato);
+
+    preorder(nodo->left, pre);
+
+    preorder(nodo->right, pre);
+
+}
+std::vector<int> RBtree::preorden(){
+    std::vector<int> pre;
+    preorder(root, pre);
+    return pre;
+}
+void RBtree::inorder(Nodo* nodo, std::vector<int>& in){
+     if(!nodo)
+        return;
+
+    inorder(nodo->left, in);
+
+    in.emplace_back(nodo->dato);
+    
+    inorder(nodo->right, in);
+   
+}
+std::vector<int> RBtree::inorden(){
+    std::vector<int> in;
+    inorder(root, in);
+    return in;
+}
+void RBtree::postorder(Nodo* nodo, std::vector<int>& post){
+    if(!nodo)
+        return;
+
+    postorder(nodo->left, post);
+
+    postorder(nodo->right, post);
+
+    post.emplace_back(nodo->dato);
+    
+
+}
+std::vector<int> RBtree::postorden(){
+    std::vector<int> post;
+    postorder(root, post);
+    return post;
+}
+
+/*Usa busqueda binaria para encontrar el nodo a eliminar, en caso de no encontrarlo
+ * retorna un nullptr*/
+Nodo* RBtree::buscar(int dato){
+    Nodo* actual = root;
+    if(!actual)
+        return nullptr;
+    while(actual->dato != dato and (actual->left or actual->right)){
+        if(actual->dato < dato)
+            actual = actual->right;
+        else
+            actual = actual->left;
+    }
+    if(actual->dato == dato)
+        return actual;
+    else
+        return nullptr;
+}
+
+/*Aplica la elimincación de Binary Search tree y retorna el nodo que se tiene que eliminar
+ * en caso no exista retorna nullptr*/
+Nodo* RBtree::eliminacionBS(int dato){
+    
+    Nodo* eliminado = nullptr;
+    // Busca si el nodo existe
+    if((eliminado = buscar(dato))){
+        // encuentra su sucesor y si el sucesor tiene hijos vuelve a buscar sucesor
+        // hasta ser una hoja
+        Nodo* reemplazo = encontrarSucesor(eliminado);
+        eliminado->dato = reemplazo->dato;
+        while(reemplazo->right){
+            Nodo* reemplazoLoop = encontrarSucesor(reemplazo);
+            reemplazo->dato = reemplazoLoop->dato;
+            reemplazo = reemplazoLoop;
+        }
+        return reemplazo;
+    }
+    return nullptr;
+
+}
+
+Nodo* RBtree::encontrarSucesor(Nodo* aEliminar){
+    Nodo* actual = aEliminar;
+    //encuentra al menor del sub-arbol derecho
+    if(actual->right){
+        actual = actual->right;
+        while(actual->left){
+            actual = actual->left;
+        }
+    }
+    return actual;
+}
+
+void RBtree::eliminarNodo(int dato){
+    //Aplica eliminación de BinarySearch
+    Nodo* aEliminar = eliminacionBS(dato);
+    if(aEliminar){
+        // si lo logró encontrar y "eliminar" se procede a eliminar por RED BLACK
+        aEliminar->color = (aEliminar->color == BLACK)? DOUBLEBLACK:RED;
+        eliminacionRB(aEliminar);
+        // nos falta liberar la memoria que ocupamos en el heap
+        if(aEliminar != root){
+           if(aEliminar->father->left == aEliminar)
+               aEliminar->father->left = nullptr;
+           else if(aEliminar->father->right == aEliminar)
+               aEliminar->father->right = nullptr;
+        }
+        else
+            root = nullptr;
+        delete aEliminar;
+    }
+}
+
+void RBtree::addBlack(Nodo* nodo){
+    nodo->color = (nodo->color == RED)? BLACK:DOUBLEBLACK;
+}
+void RBtree::eliminacionRB(Nodo* nodo){
+    // CASO 1: si el nodo es rojo solo se elimina
+    // -> retornamos que la eliminación de la hoja se procesa afuera
+    if(nodo->color == RED){
+        return ;
+    }
+    // CASO 2: si el nodo es root solo quitamos el DOUBLEBLACK
+    // -> si el root es DOUBLEBLACK lo volvemos black
+    if(nodo == root){
+        setColor(nodo, BLACK);
+        return;
+    }
+    if(nodo->color == DOUBLEBLACK){
+        Nodo* hermano = (nodo->father->left == nodo)? nodo->father->right: nodo->father->left;
+        bool lado = (nodo->father->left == nodo)? IZQUIERDA:DERECHA;
+        //CASO 1.2: El nodo es negro pero tiene un unico hijo rojo
+        //-> intercambiamos al nodo con su unico hijo rojo
+        //-> el hijo se vuelve BLACK
+        if(nodo->left){
+            if(!nodo->right && nodo->left->color == RED){
+                nodo->left->father = nodo->father;
+                setColor(nodo->left, BLACK);
+                if(lado == DERECHA){
+                    nodo->father->right = nodo->left;
+                }
+                else
+                    nodo->father->left = nodo->left;
+                    
+                return;
+            }
+        }
+
+        if(hermano->color == BLACK){ 
+            // CASO 3: si el nodo es DOUBLEBLACK y su hermano es BLACK al igual que sus hijos
+            // cabe resaltar que nullptr se considera negro y para evitar segmentation faults tengo que hacer este grupo de ifs
+            // ->le añadimos BLACK al padre
+            // -> el hermano se vuelve RED
+            // -> si el padre es DOUBLEBLACK volvemos a llamar a la función en el padre
+            if(!hermano->left and !hermano->right){
+                addBlack(nodo->father);
+                setColor(hermano, RED);
+                if(nodo->father->color == DOUBLEBLACK)
+                    eliminacionRB(nodo->father);
+                return;
+            }
+            else if(!hermano->left){
+                if(hermano->right->color == BLACK) {
+                    addBlack(nodo->father);
+                    setColor(hermano, RED);
+                    if(nodo->father->color == DOUBLEBLACK)
+                        eliminacionRB(nodo->father); 
+                }
+            }
+            else if(!hermano->right){
+                if(hermano->left->color == BLACK){
+                    addBlack(nodo->father);
+                    setColor(hermano, RED);
+                    if(nodo->father->color == DOUBLEBLACK)
+                        eliminacionRB(nodo->father);
+                }
+            }
+            else if(hermano->left->color == BLACK and hermano->right->color == BLACK){
+                addBlack(nodo->father);
+                setColor(hermano, RED);
+                if(nodo->father->color == DOUBLEBLACK)
+                    eliminacionRB(nodo->father);
+            }
+            //CASO 5: Sobrino lejano es negro y el cercano es rojo
+            //->intercambiamos el color del hermano con el sobrino
+            //->rotamos al hermano al sentido contrario del DOUBLEBLACK
+            //->vamos al caso 6
+            else if(lado == IZQUIERDA and hermano->left->color == RED and hermano->right->color == BLACK){
+                std::swap(hermano->color, hermano->left->color);
+                rotarDerecha(hermano);
+                eliminacionRB(nodo);
+            }
+            else if(lado == DERECHA and hermano->left->color == BLACK and hermano->right->color == RED){
+                std::swap(hermano->color, hermano->right->color);
+                rotarIzquierda(hermano);
+                eliminacionRB(nodo);
+            }
+            // CASO 6: Sobrino lejano es de color rojo
+            // ->cambiamos de color entre el padre y el hermano
+            // -> rotamos al padre en dirección del DOUBLEBLACK
+            // -> al DOUBLEBLACK lo volvemos BLACK y al sobrino lejano lo volvemos BLACK
+            else if(lado == DERECHA and hermano->left->color == RED){
+                Nodo* rojoLejano = hermano->left;
+                std::swap(hermano->color, nodo->father->color);
+                rotarDerecha(nodo->father);
+                setColor(nodo, BLACK);
+                setColor(rojoLejano, BLACK);
+            }
+            else if(lado == IZQUIERDA and hermano->right->color == RED){
+                Nodo* rojoLejano = hermano->right;
+                std::swap(hermano->color, nodo->father->color);
+                rotarDerecha(nodo->father);
+                setColor(nodo, BLACK);
+                setColor(rojoLejano, BLACK);
+            }
+        }
+        //CASO 4: El hermano es de color rojo
+        //-> cambiamos el color del hermano con el padre
+        //-> rotamos al padre en dirección del DOUBLEBLACK
+        //-> volvemos a llamar para procesar el siguiente caso
+        else if(hermano->color == RED){
+            std::swap(hermano->color, nodo->father->color);
+            if(lado == IZQUIERDA)
+                rotarIzquierda(nodo->father);
+            else 
+                rotarDerecha(nodo->father);
+            eliminacionRB(nodo);
+        }
+    }
 }

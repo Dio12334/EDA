@@ -2,6 +2,7 @@
 #include <fstream>
 #include <chrono>
 
+
 int main() {
 
 
@@ -27,7 +28,6 @@ int main() {
             tree->insertar( datos[i] );
         }
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        tree->BFS();
         // Calcular tiempo
         auto tiempo = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         tiempoInseccion += tiempo;

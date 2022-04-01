@@ -1,4 +1,4 @@
-#include "BplusTree.h"
+#include "BPlusTree.h"
 
     Node::Node(): 
     nChildren(0), 
@@ -15,8 +15,11 @@
 
     Node::~Node(){}
 
+    /*addKey recibe dos parametros, la key a insertar y su hijo derecho si es que 
+     * existe (por defecto es nullptr)*/
     bool Node::addKey(int key, Node* node){
-        
+        //la key se va a insertar en su lugar desplazando al resto de elementos a su derecha
+        //lo mismo con su hijo respectivo
         int itValue = key;
         Node* itNode = node;
         nKeys++;
@@ -31,13 +34,14 @@
             }   
         }
         nChildren += (nKeys == 1)? 2:1;
-        if(nKeys-1 < ORDER - 1)
-            return true;
-        else if(nKeys - 1 == ORDER - 1) 
+        //retorna verdadero si el nodo no se sobrellenado
+        //y false en caso contrario
+        if(nKeys - 1 == ORDER - 1) 
             return false;
-        return false;
+        return true;
     }
 
+    /*Busca la key en el arbol y retorna el nodo en el que se encuentra*/
     Node* Node::search(int key){
         if(!nKeys)
             return nullptr;
@@ -60,6 +64,7 @@
         return nullptr;
     }
 
+    /*Busca la key en el arbol y retorna el nodo en el que debería ir*/
     Node* Node::searchProperLeaf(int key){
         if(!nKeys)
             return this;
@@ -79,6 +84,8 @@
         }
         return nullptr; 
     }
+
+    /*Este metodo divide al nodo en 2 y retorna a su otra mitad*/
     Node* Node::createSibling(){
         Node* sibling = new Node();
         for(size_t i = (ORDER-1)/2; i < ORDER; i++){
@@ -94,6 +101,7 @@
         return sibling;
     }
 
+    /*Lo llamo para liberar la memoria y no causar memory leaks*/
     void Node::killNode(){
         for(size_t i = 0; i < ORDER; i++){
             if(children[i]){
@@ -102,7 +110,10 @@
         }
         delete this;
     }
-
+    
+    /*Cuando un nodo interno se divide tiene que pasar su valor del medio
+     * haciendo que el hijo derecho pierda su key en posicion 0,
+     * este metodo mueve todos los keys 1 a la izquierda y lo mismo con sus hijos*/
     void Node::getBackHead(){
         size_t i;
         for( i = 1; i < nKeys; i++){
@@ -117,6 +128,7 @@
 
     }
 
+    /*Printea el nodo y puedes ponerle un mensaje si quieres para debugear*/
     void Node::printNode(const char* message){
         std::cout<<message;
         for(size_t i = 0; i < nKeys; i++)

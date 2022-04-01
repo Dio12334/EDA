@@ -62,10 +62,20 @@ class BplusTree{
             }
             std::cout<<"\n";
         }
+        void printLinkedList(){
+            Node* first = root->searchProperLeaf(-1);
+            while(first){
+                first->printNode("");
+                std::cout<<" -> ";
+                first = first->rightSibling;
+            }
+            std::cout<<" null \n";
+        }
     private:
         Node* root;
         /*divide el nodo y crea su padre si es que no existe*/
         void divideNode(Node* node){
+
             Node* sibling = node->createSibling(); // parte el nodo en 2 y crea la otra mitad
             sibling->leaf = node->leaf;// si el nodo que partiste es hoja entonces su otra mitad tambien lo será
             if(!node->father){// si no hay un padre lo va a crear
@@ -76,15 +86,18 @@ class BplusTree{
                 newFather->addKey(sibling->keys[0]); // le agregas la referencia del key medio
                 newFather->children[0] = node;
                 newFather->children[1] = sibling;
+                if(node->leaf)
+                    node->rightSibling = sibling;
             }
             else{// si ya existe un padre
                 sibling->father = node->father;
                 node->father->addKey(sibling->keys[0], sibling);// agregas la referencia del key y el hijo nuevo
             }
             if(!sibling->leaf)
-                sibling->getBackHead(); // si subiste la referencia con un nodo no hoja mueves todas keys 1 a la izquierda
-            if(node->leaf)
-                node->rightSibling = sibling;// si eran hojas la vuelvas una linked list
+                sibling->getBackHead();// si subiste la referencia con un nodo no hoja mueves todas keys 1 a la izquierda
+        
+//            if(node->leaf)
+//                node->rightSibling = sibling;// si eran hojas la vuelvas una linked list
             if(node->father->nKeys == ORDER)// si el padre se llena entonces partes al padre
                 divideNode(node->father);
         }

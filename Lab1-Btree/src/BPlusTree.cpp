@@ -23,14 +23,19 @@
         int itValue = key;
         Node* itNode = node;
         nKeys++;
+
+        bool mySonIsALeaf = (children[0])? children[0]->leaf:false;
         for(size_t i = 0; i < nKeys; i++){
             if(itValue < keys[i] ){
                 int temp = keys[i];
                 keys[i] = itValue;
                 itValue = temp;
+                
                 Node* tempNode = children[i+1];
                 children[i+1] = itNode;
                 itNode = tempNode;
+                if(mySonIsALeaf)
+                    children[i]->rightSibling = children[i+1];
             }   
         }
         nChildren += (nKeys == 1)? 2:1;
@@ -119,8 +124,10 @@
         for( i = 1; i < nKeys; i++){
             keys[i-1] = keys[i];
             children[i-1] = children[i];
+            children[i-1]->father = this;
         }
         children[i-1] = children[i];
+        children[i-1]->father = this;
         children[i] = nullptr;
         keys[nKeys-1] = std::numeric_limits<int>::max();
         nKeys--;

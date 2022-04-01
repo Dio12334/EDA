@@ -7,7 +7,7 @@ int main() {
 
     // Read file
     std::ifstream texto;
-    texto.open("./output.txt");
+    texto.open("../output.txt");
 
     int datos[ 1000000 ];
     int element;
@@ -27,10 +27,11 @@ int main() {
             tree->insertar( datos[i] );
         }
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
+        tree->BFS();
         // Calcular tiempo
         auto tiempo = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         tiempoInseccion += tiempo;
+        delete tree;
     }
     std::cout<< tiempoInseccion<<"\n";
     

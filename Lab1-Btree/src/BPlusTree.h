@@ -1,7 +1,7 @@
 #ifndef BPLUSTREE_H
 #define BPLUSTREE_H
 
-#define ORDER 21
+#define ORDER 3
 #include <iostream>
 #include <limits>
 #include <cmath>
@@ -25,6 +25,16 @@ struct Node{
     void killNode();
     void getBackHead();
     void printNode(const char* message);
+    void simpleDeletion(size_t positionOfKey);
+    void deleteKey(int key);
+    Node* findRightSibling();
+    Node* findLeftSibling();
+    void arrangeNode(size_t positionOfChildToShift);
+    size_t getPositionInFatherList();
+    Node* rearrangeInternals();
+    void pushFrontChildren(Node* nodeToPush);
+    void pushBackChildren(Node* nodeToPush);
+    Node* moreConciseDelete(int key, Node* root);
 };
 
 class BplusTree{
@@ -46,7 +56,12 @@ class BplusTree{
             inorder(root);
             std::cout<<"\n";
         }
-        
+       void eliminar(int key){
+            Node* deletionNode = root->search(key);
+            if(deletionNode){
+               root = deletionNode->moreConciseDelete(key, root); 
+            }
+       } 
         /*printea bfs*/
         void printBFS(){
             std::list<Node*> vec;

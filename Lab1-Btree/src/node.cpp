@@ -111,7 +111,6 @@ void Leaf::deleteKey(int key){
             Leaf* leftSibling = (Leaf*)findLeftSibling();
             if(!leftSibling) leftSibling = new Leaf(tree);
             
-            std::cout<<leftSibling->father<<" "<<father<<"\n";
             if(rightSibling && rightSibling->nKeys-1 >= std::ceil(ORDER/2.0)-1 && rightSibling->father == father){
                 simpleDeletion(pos);
                 if(!pos)
@@ -124,9 +123,7 @@ void Leaf::deleteKey(int key){
             }
             else if(leftSibling && leftSibling->nKeys-1 >= std::ceil(ORDER/2.0)-1 && leftSibling->father == father){
                 simpleDeletion(pos);
-                std::cout<<"hola\n";
                 int it = leftSibling->keys[leftSibling->nKeys-1];
-                std::cout<<it<<"\n";
                 for(size_t i = 0; i < nKeys + 1; i++){
                     int temp = keys[i];
                     keys[i] = it;

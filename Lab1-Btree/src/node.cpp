@@ -62,7 +62,11 @@ void Leaf::divideAndCreateOrAddToFather(){
         }
         father->addChildren(this);
     }
-    father->addChildren(newSibling);
+    size_t pos = getPositionOnFather();
+    father->shifRightFrom(pos+1);
+    father->children[pos+1] = newSibling;
+    father->keys[pos] = newSibling->keys[0];
+    //father->addChildren(newSibling);
     newSibling->father = father;
     if(father->nKeys == ORDER)
         return father->divideAndCreateOrAddToFather();
@@ -93,75 +97,82 @@ void Node::addKey(int key){
 }
 
 void Leaf::deleteKey(int key){
+    // Lo primero es encontrar la posición en el nodo hoja a eliminar
     size_t pos;
     for( pos = 0; pos < nKeys; pos++)
         if(keys[pos] == key)
             break;
+    // Si la hoja es la raiz del arbol solo se elimina el key
     if(this == tree->root){
        simpleDeletion(pos);
-    }
+    }// en caso no sea raiz verificamos si cumple con la cantidad de keys minima si se elimina esta
     else if(nKeys-1 >= std::ceil(ORDER/2.0)-1){
         simpleDeletion(pos);
-        if(!pos)
+        if(!pos) // si se elimino la primera posicion reemplazamos la key de referencia que había
             replaceOldKey(key, keys[0]);
-    }
+    }// en caso no los cumpla
     else{
-            Leaf* rightSibling = (Leaf*)findRightSibling();
-            if(!rightSibling) rightSibling = new Leaf(tree);
-            Leaf* leftSibling = (Leaf*)findLeftSibling();
-            if(!leftSibling) leftSibling = new Leaf(tree);
-            
-            if(rightSibling && rightSibling->nKeys-1 >= std::ceil(ORDER/2.0)-1 && rightSibling->father == father){
-                simpleDeletion(pos);
-                if(!pos)
-                    replaceOldKey(key, keys[0]);
-                int old = keys[0];
-                keys[nKeys++] = rightSibling->keys[0];
-                rightSibling->simpleDeletion(0);
-                rightSibling->replaceOldKey(keys[nKeys-1], rightSibling->keys[0]);
-                replaceOldKey(old, keys[0]);
-            }
-            else if(leftSibling && leftSibling->nKeys-1 >= std::ceil(ORDER/2.0)-1 && leftSibling->father == father){
-                simpleDeletion(pos);
-                int it = leftSibling->keys[leftSibling->nKeys-1];
-                for(size_t i = 0; i < nKeys + 1; i++){
-                    int temp = keys[i];
-                    keys[i] = it;
-                    it = temp;
-                }
-                nKeys++;
+        //buscamos a su hermano derecho y izquierdo
+        Leaf* rightSibling = (Leaf*)findRightSibling();
+        if(!rightSibling) rightSibling = new Leaf(tree);
+         
+        Leaf* leftSibling = (Leaf*)findLeftSibling();
+        if(!leftSibling) leftSibling = new Leaf(tree);
+        // si el hermano derecho es hermano inmediato y puede prestar
+        if(rightSibling->nKeys-1 >= std::ceil(ORDER/2.0)-1 && rightSibling->father == father){
+            simpleDeletion(pos);
+            if(!pos)
                 replaceOldKey(key, keys[0]);
-                leftSibling->simpleDeletion(leftSibling->nKeys-1);
+            int old = keys[0];
+            keys[nKeys++] = rightSibling->keys[0];
+            rightSibling->simpleDeletion(0);
+            rightSibling->replaceOldKey(keys[nKeys-1], rightSibling->keys[0]);
+            replaceOldKey(old, keys[0]);
+        }// si el hermano izquierdo es inmediato y puede prestar
+        else if(leftSibling->nKeys-1 >= std::ceil(ORDER/2.0)-1 && leftSibling->father == father){
+            simpleDeletion(pos);
+            int it = leftSibling->keys[leftSibling->nKeys-1];
+            for(size_t i = 0; i < nKeys + 1; i++){
+                int temp = keys[i];
+                keys[i] = it;
+                it = temp;
             }
-            else if(rightSibling && rightSibling->father == father){
-                simpleDeletion(pos);
-               int oldKey = rightSibling->keys[0];
-                for(size_t i = 0; i < rightSibling->nKeys; i++){
-                    leftSibling->keys[i + nKeys] = leftSibling->keys[i];
-                    if(i < nKeys)
-                        leftSibling->keys[i] = keys[i];
-                }
-                rightSibling->nKeys += nKeys;
-                nKeys = 0;
-                rightSibling->replaceOldKey(oldKey, rightSibling->keys[0]);
-                father->shiftLeftFrom(getPositionOnFather());
-                if(!pos)
-                    replaceOldKey(key, rightSibling->keys[0]);
-                if(father->nChildren < std::ceil(ORDER/2.0))
-                    father->reorganizeParent();
-                delete this;
+            nKeys++;
+            replaceOldKey(key, keys[0]);
+            leftSibling->simpleDeletion(leftSibling->nKeys-1);
+        }// si el hermano derecho es inmediato pero no puede prestar
+        else if(rightSibling->father == father){
+            simpleDeletion(pos);
+            int oldKey = rightSibling->keys[0];
+            for(size_t i = 0; i < rightSibling->nKeys; i++){
+                rightSibling->keys[i + nKeys] = rightSibling->keys[i];
+                if(i < nKeys)
+                    rightSibling->keys[i] = keys[i];
             }
-            else if(leftSibling && leftSibling->father == father){
-                simpleDeletion(pos);
-                for(size_t i = 0; i < nKeys;i++){
-                    leftSibling->keys[nKeys++] = keys[i];
-                }
-                nKeys = 0;
-                replaceOldKey(key, leftSibling->keys[0]);
-                father->shiftLeftFrom(getPositionOnFather());
-                if(father->nChildren < std::ceil(ORDER/2.0))
-                    father->reorganizeParent();
+            rightSibling->nKeys += nKeys;
+            nKeys = 0;
+            rightSibling->replaceOldKey(oldKey, rightSibling->keys[0]);
+            father->shiftLeftFrom(getPositionOnFather());
+            if(!pos)
+                replaceOldKey(key, rightSibling->keys[0]);
+            leftSibling->rightSibling = rightSibling;
+            if(father->nChildren < std::ceil(ORDER/2.0))
+                father->reorganizeParent();
+            delete this;
+        }// si el hermano izquierdo es inmediato y no puede prestar
+        else if(leftSibling->father == father){
+            simpleDeletion(pos);
+            for(size_t i = 0; i < nKeys;i++){
+                leftSibling->keys[leftSibling->nKeys++] = keys[i];
             }
+            nKeys = 0;
+            replaceOldKey(key, leftSibling->keys[0]);
+            father->shiftLeftFrom(getPositionOnFather());
+            leftSibling->rightSibling = rightSibling;
+            if(father->nChildren < std::ceil(ORDER/2.0))
+                father->reorganizeParent();
+            delete this;
+        }
     }
 }
 
@@ -268,8 +279,11 @@ void Internal::divideAndCreateOrAddToFather(){
         }
         father->addChildren(this);
     }
-    father->addChildren(sibling);
-    father->keys[father->nKeys-1] = keys[nKeys-1];
+    size_t pos = getPositionOnFather();
+    //father->addChildren(sibling);
+    father->shifRightFrom(pos+1);
+    father->children[pos+1] = sibling;
+    father->keys[pos] = keys[nKeys-1];
     keys[nKeys-1] = INT_MAX;
     nKeys--;
     sibling->father = father;
@@ -334,6 +348,8 @@ Node* Internal::findRightSibling(){
         return nullptr;
 }
 void Internal::reorganizeParent(){
+    //en este metodo asumimos que el padre ya esta ordenado y ya perdio el hijo mergeado
+    //si es raiz y su numero de hijos es 1 entonces bajamos el root a su único hijo
     if(this == tree->root){
         if(nChildren == 1){
             tree->root = children[0];
@@ -342,19 +358,22 @@ void Internal::reorganizeParent(){
         }
     }
     else {
+        
         Internal* leftSibling = (Internal*) findLeftSibling();
         if(!leftSibling) leftSibling = new Internal(tree);
         Internal* rightSibling = (Internal*) findRightSibling();
         if(!rightSibling) rightSibling = new Internal (tree);
-        if(rightSibling && rightSibling->nChildren -1 >= std::ceil(ORDER/2.0) && rightSibling->father == father){
+        
+        // si el hermano derecho es inmediato  y puede prestar
+        if(rightSibling->nChildren -1 >= std::ceil(ORDER/2.0) && rightSibling->father == father){
             addChildren(rightSibling->children[0]);
             rightSibling->children[0]->father = this;
             size_t posOfKeyFather = getPositionOnFather();
             keys[nKeys-1] = father->keys[posOfKeyFather];
             father->keys[posOfKeyFather] = rightSibling->keys[0];
             rightSibling->shiftLeftFrom(0);
-        }
-        else if(leftSibling && leftSibling->nChildren -1 >= std::ceil(ORDER/2.0) && leftSibling->father == father){
+        }//si el hermano izquierdo es el inmediato y puede prestar
+        else if(leftSibling->nChildren -1 >= std::ceil(ORDER/2.0) && leftSibling->father == father){
             shifRightFrom(0);
             children[0] = leftSibling->children[leftSibling->nChildren-1];
             children[0]->father = this;
@@ -362,8 +381,8 @@ void Internal::reorganizeParent(){
             keys[0] = father->keys[posOfKeyFather-1];
             father->keys[posOfKeyFather-1] = leftSibling->keys[leftSibling->nKeys-1];
             leftSibling->shiftLeftFrom(leftSibling->nChildren-1);
-        }
-        else if(rightSibling && rightSibling->father == father){
+        }// si el hermano derecho es inmediato y no puede prestar
+        else if(rightSibling->father == father){
             size_t posOfKeyFather = getPositionOnFather();
                 for(size_t i = 0; i < rightSibling->nChildren;i++ ){
                     children[nChildren++] = rightSibling->children[i];
@@ -381,14 +400,19 @@ void Internal::reorganizeParent(){
                     if(i < nKeys)
                         rightSibling->keys[i] = keys[i];
                 }
-                rightSibling->nKeys += nKeys;
-                rightSibling->nChildren += nChildren;
+                rightSibling->nKeys = nKeys;
+                rightSibling->nChildren = nChildren;
+                int key;
+                if(posOfKeyFather)
+                    key = father->keys[posOfKeyFather-1];
                 father->shiftLeftFrom(posOfKeyFather);
+                if(posOfKeyFather)
+                    father->keys[posOfKeyFather-1] = key;
                 if(father->nChildren < std::ceil(ORDER/2.0))
                     father->reorganizeParent();
                 delete this;
-        }
-        else if(leftSibling && leftSibling->father == father){
+        }// si el hermano izquierdo es inmediato y no puede prestar
+        else if(leftSibling->father == father){
             size_t posOfKeyFather = getPositionOnFather();
             for(size_t i = 0; i < nChildren; i++){
                 leftSibling->children[leftSibling->nChildren++] = children[i];

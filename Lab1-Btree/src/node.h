@@ -85,12 +85,16 @@ struct Internal: public Node{
         nChildren--;
         nKeys--;
     }
+
     void shifRightFrom(size_t pos){
-        for(size_t i = nChildren; i > pos; i++){
+        size_t i;
+        for(i = nChildren; i > pos; i--){
             children[i] = children[i-1];
             if(i <= nKeys)
                 keys[i] = keys[i-1];
         }
+        if(i)
+            keys[i] = keys[i-1];
         nChildren++;
         nKeys++;
     }

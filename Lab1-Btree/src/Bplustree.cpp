@@ -15,10 +15,14 @@ void BPlusTree::insert(int key){
     properLeaf->addKey(key);    
 }
 void BPlusTree::remove(int key){
+    std::cout<<"eliminar: "<<key<<"\n";
     Node* leafFromDeletion = root->search(key);
     if(leafFromDeletion){
+        std::cout<<"encontrado y eliminado \n";
         leafFromDeletion->deleteKey(key);
+        return;
     }
+    std::cout<<"no se encontró\n";
 }
 void BPlusTree::printBFS(){
 

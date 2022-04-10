@@ -11,7 +11,7 @@ class BPlusTree{
         ~BPlusTree();
         bool search(int key);
         void insert(int key);
-        void remove(int key);
+        bool remove(int key);
         void printBFS();
         void printLinkedList();
         void printInorder();
